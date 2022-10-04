@@ -1,0 +1,53 @@
+
+//note: The alu needs to be fed an opCode and the regs which it supposed to act on, the opcode comes directly from the instruction, while we need to play a bit with the regs to select the intended ones,
+//the jump instruction will be dealt in the Program counter part
+
+Mux16(a=AluOUT, b=instruction, sel=instruction[15]), out=ARegIn);
+
+//is M bit set and instruction
+And(a=instruction[3], b=instruction[15], out=writeM);
+
+//Now lets check if A is needed in the instruction
+Not(in = instruction[15], out=IsA);
+
+//is A bit set and instruction
+Or(a = IsA, b = instruction[5], out =InstAndA);
+aRegister(in = ARegIn, load=InstAndA, out=Areg, out=MuxIn, out[0..14] = addressM);
+// m or a ?
+Mux16(a =Areg, b=IsA, sel = instruction[12], out= AM);
+
+//is D bit set and instruction
+And(a = instruction[4], b = instruction[15], out = InstAndD);
+dRegister(in = ALUOut, load=InstAndD, out = Dreg);
+
+//bit of instruction to opCode
+ALU(x = Dreg, y = AM, zx = instruction[11], nx = instruction[10], zy = instruction[9], ny = instruction[8], f = instruction[7], no = instruction[6], out = ALUOut, out = outM, zr = zr, ng = ng);
+
+//Program Counter:
+//1st priority:
+//if reset==1: PC=0
+//2nd priority:
+// 000 PC++
+// 111 PC = A
+// some 0s some 1s, Conditional PC=A, else: PC++
+//implementation:
+//if load==1: PC=A, else: PC++
+
+//jump if zero:
+And(a = instruction[1], b=zr, out=IfZeroJump);
+//jump if <0:
+And(a = instruction[2], b = ng, out=IfNgJump);
+//if >0:
+Or(a=ng, b=zr, out=ZeroOrNg);
+Not(in=ZeroOrNg, out=GreaterThan0);
+And(a=instruction[0], b=GreaterThan0, out=IfGreaterThan0Jump);
+Or(a = IfNgJump, b = IfZeroJump, out=x);
+Or(a=x, b=IfGreaterThan0Jump, out = jumpCondition);
+//jump condition is true and this is an instruction:
+And(a=jumpCondition, b=instruction[15], out=jump);
+
+//The end:
+PC(in = Areg, load=jump, inc=1, reset=reset, out[0..14] = pc);
+
+
+
