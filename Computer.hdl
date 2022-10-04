@@ -1,0 +1,7 @@
+PARTS:
+    // Put your code here:
+    //Keyboard, screen and the reset button are user input
+    ROM32K(address=pc, out=instruction);
+    Memory(in=outM, load=writeM, address=addressM, out=inM);
+    CPU(inM=inM, instruction=instruction, reset=reset, outM=outM, writeM=writeM, addressM=addressM, pc=pc);
+}
